@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>局域网传输平台</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.7.15/vue.common.dev.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.0/axios.min.js" ></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/element-ui/2.15.14/theme-chalk/index.min.css" >
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/element-ui/2.15.14/index.min.js" ></script>
+</head>
+<body>
+    <div id="app">
+        <el-upload
+        drag
+        :show-file-list="false"
+        :on-success=uploadSuc
+        action="<goval=uploadurl>"
+        multiple>
+        <i class="el-icon-upload"></i>
+        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+        <div class="el-upload__tip" slot="tip">只限于局域网内使用</div>
+        </el-upload>
+        <el-button type="primary" @click="loadImg">刷新</el-button>
+        <el-button type="danger" @click="emptyImg">清空图片</el-button>
+        <div class="demo-image">
+            <div style="display: inline-block;" v-for="fit in img_arr">
+                <el-image
+                    style="width: 100px; height: 100px"
+                    :src="fit.url"
+                    :fit="fit.fit"></el-image>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            message: false,
+            img_arr:[
+                {'fit':'fill','url':'https://t8.baidu.com/it/u=2564681574,350774151&fm=218&app=126&size=f242,150&n=0&f=JPEG&fmt=auto?s=81B7C7321FC24EC06ECBA042030030FA&sec=1702746000&t=686bb5ce7b508caf77daf028670343a7'},
+            ],
+        },
+        methods: {
+            uploadSuc:function(){
+                this.loadImg()
+                this.$message({
+                    message: '上传完成',
+                    type: 'success'
+                });
+            },
+            loadImg:function(){
+                _this=this
+                let url='<goval=loadimgurl>'
+                axios
+                .get(url)
+                .then(function (response) {
+                    // console.log(response.data);
+                    showpicurl="<goval=showpicurl>"
+                    _this.img_arr=[]
+                    for (const k in response.data.list) {
+                        _this.img_arr.push({"url":showpicurl+response.data.list[k],fit:'fill'});
+                    }
+                })
+                .catch(function (error) {
+                    console.log(error);
+                });
+            },
+            emptyImg:function(){
+                _this=this
+                let url='<goval=emptyimgurl>'
+                axios
+                .get(url)
+                .then(function (response) {
+                    _this.loadImg()
+                    _this.$message({
+                        message: '清空成功',
+                        type: 'success'
+                    });
+                })
+                .catch(function (error) {
+                    console.log(error);
+                });
+            }
+        },
+        created: function () {
+            this.loadImg()
+        }
+    })
+</script>
+</html>

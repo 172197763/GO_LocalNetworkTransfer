@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -12,14 +13,21 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/skip2/go-qrcode"
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
+type netInfo struct {
+	Url    string `json:"url"`
+	Qrcode string `json:"qrcode"`
+}
+
 func main() {
 	var restConf rest.RestConf
+	ip := ""
 	conf.MustLoad("./etc/conf.yaml", &restConf)
 	s, err := rest.NewServer(restConf)
 	if err != nil {
@@ -30,26 +38,41 @@ func main() {
 		Method: http.MethodGet,
 		Path:   "/hello/world",
 		Handler: func(writer http.ResponseWriter, request *http.Request) { // 处理函数
-			m := make(map[string]string, 0)
-			m["test"] = "123"
-			m["inet"] = getINet()
-			m["url"] = "http://" + getINet() + ":" + strconv.Itoa(restConf.Port) + "/hello/picAdmin"
+			netinfo := make([]netInfo, 0)
+			// m["des"] = "请选择适合的内网ip进行访问"
+			for k, v := range getINet() {
+				tmp := netInfo{
+					"http://" + v + ":" + strconv.Itoa(restConf.Port) + "/hello/picAdmin",
+					"http://" + v + ":" + strconv.Itoa(restConf.Port) + "/upload/qrcode/url_" + strconv.Itoa(k) + ".png",
+				}
+				generateQRCode(tmp.Url, "./upload/qrcode/url_"+strconv.Itoa(k)+".png")
+				netinfo = append(netinfo, tmp)
+			}
 			// writer.Header().Add("Content-Type", "text/html")
-			httpx.OkJson(writer, m)
-
+			// httpx.OkJson(writer, m)
+			jsonData := make(map[string]interface{})
+			result, err := json.Marshal(netinfo)
+			if err != nil {
+				panic(err) // 发生错误时进行相应处理
+			}
+			jsonData["url_arr"] = string(result)
+			writer.Write([]byte(view("./view/inet.html", jsonData)))
+			// httpx.Ok(writer)
 		},
 	})
 	s.AddRoute(rest.Route{ // 添加路由
 		Method: http.MethodGet,
 		Path:   "/hello/picAdmin", //pc端管理图片
 		Handler: func(writer http.ResponseWriter, request *http.Request) { // 处理函数
+			ip = request.Host
 			writer.Header().Add("Content-Type", "text/html")
 			// writer.Write([]byte("<h1>123</h1>"))
-			data := make(map[string]string, 1)
-			data["uploadurl"] = "http://" + getINet() + ":" + strconv.Itoa(restConf.Port) + "/hello/uploadImg"
-			data["loadimgurl"] = "http://" + getINet() + ":" + strconv.Itoa(restConf.Port) + "/hello/getAllPic"
-			data["showpicurl"] = "http://" + getINet() + ":" + strconv.Itoa(restConf.Port) + "/upload/"
-			data["emptyimgurl"] = "http://" + getINet() + ":" + strconv.Itoa(restConf.Port) + "/hello/emptyPic"
+			data := make(map[string]interface{}, 1)
+			data["uploadurl"] = "http://" + ip + "/hello/uploadImg"
+			data["loadimgurl"] = "http://" + ip + "/hello/getAllPic"
+			data["showpicurl"] = "http://" + ip + "/upload/img/"
+			data["emptyimgurl"] = "http://" + ip + "/hello/emptyPic"
+			data["createtxtqrcodeurl"] = "http://" + ip + "/hello/createTextQrcode"
 			writer.Write([]byte(view("./view/admin.html", data)))
 			httpx.Ok(writer)
 		},
@@ -58,7 +81,7 @@ func main() {
 		Method: http.MethodGet,
 		Path:   "/hello/getAllPic", //获取所有图片名称
 		Handler: func(writer http.ResponseWriter, request *http.Request) { // 处理函数
-			dir := "./upload"
+			dir := "./upload/img"
 			files, err := os.ReadDir(dir)
 			if err != nil {
 				fmt.Println(err)
@@ -88,7 +111,7 @@ func main() {
 				}
 			}
 
-			data, err := os.ReadFile("./upload/" + imgName)
+			data, err := os.ReadFile("./upload/img/" + imgName)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -101,11 +124,28 @@ func main() {
 		Method: http.MethodGet,
 		Path:   "/hello/emptyPic", //清空文件夹
 		Handler: func(writer http.ResponseWriter, request *http.Request) { // 处理函数
-			dirPath := "./upload/"
+			dirPath := "./upload/img/"
 			if err := clearDir(dirPath); err != nil {
 				log.Fatal(err)
 			}
 			httpx.OkJson(writer, []int{})
+		},
+	})
+	s.AddRoute(rest.Route{ // 添加路由
+		Method: http.MethodPost,
+		Path:   "/hello/createTextQrcode", //上传文本接口
+		Handler: func(writer http.ResponseWriter, request *http.Request) { // 处理函数
+			fmt.Println("text内容")
+			request.ParseForm()
+			post_data := request.Form
+			content, _ := post_data["text"]
+			file_set_content("./upload/txt/0000.txt", []byte(content[0]))
+			url := "http://" + ip + "/upload/txt/0000.txt"
+			generateQRCode(url, "./upload/qrcode/0000.png")
+			m := make(map[string]interface{})
+			m["code"] = 200
+			m["url"] = "http://" + ip + "/upload/qrcode/0000.png"
+			httpx.OkJson(writer, m)
 		},
 	})
 	s.AddRoute(rest.Route{ // 添加路由
@@ -126,7 +166,7 @@ func main() {
 
 			// 将文件保存到本地或进行其他操作
 			data, err := io.ReadAll(file)
-			file_set_content("./upload/"+handler.Filename, data)
+			file_set_content("./upload/img/"+handler.Filename, data)
 			if err != nil {
 				panic("无法读取文件内容")
 			}
@@ -140,13 +180,6 @@ func main() {
 			fmt.Fprintf(writer, "已成功接收并处理文件！")
 		},
 	})
-	// 这里注册
-	// dirpath := "./upload/"
-	// s.AddRoute(rest.Route{
-	// 	Method:  http.MethodGet,
-	// 	Path:    "/upload/",
-	// 	Handler: dirhandler("/upload/", dirpath),
-	// })
 	//这里注册
 	dirlevel := []string{":1", ":2", ":3", ":4", ":5", ":6", ":7", ":8"}
 	patern := "/upload/"
@@ -210,7 +243,7 @@ func file_set_content(filePath string, content []byte) bool {
 			fmt.Println(err)
 		}
 	}
-	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		fmt.Println("文件打开失败", err)
 		return false
@@ -228,7 +261,7 @@ func file_set_content(filePath string, content []byte) bool {
 }
 
 // 读取html内容
-func view(path string, data map[string]string) string {
+func view(path string, data map[string]interface{}) string {
 	// 指定要读取的文件路径
 	filePath := path // 将此处替换为你自己的文件路径
 
@@ -241,27 +274,46 @@ func view(path string, data map[string]string) string {
 
 	// 将字节切片转换成字符串类型
 	contentString := string(contentBytes)
+
 	for k, v := range data {
-		log.Println("日志--" + "<goval=" + k + ">:" + v)
-		contentString = strings.Replace(contentString, "<goval="+k+">", v, -1)
+		str, ok := v.(string)
+		if ok {
+			fmt.Println("Converted string:", str)
+			log.Println("日志--注入参数" + "<goval=" + k + ">:" + str)
+			contentString = strings.Replace(contentString, "<goval="+k+">", str, -1)
+		} else {
+			fmt.Println("Conversion failed")
+		}
 	}
 	// 打印文件内容
 	return (contentString)
 }
 
 // 查找内网ip
-func getINet() string {
+func getINet() []string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		fmt.Println(err)
-		return ""
+		return []string{}
 	}
+	ip_arr := make([]string, 0)
 	for _, addr := range addrs {
 		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
-				return ipnet.IP.String()
+				ip_arr = append(ip_arr, ipnet.IP.String())
 			}
 		}
 	}
-	return ""
+	return ip_arr
+}
+
+// 生成qrcode
+func generateQRCode(data string, filePath string) error {
+	// 调用 qrcode.Encode 方法生成二维码图片
+	content, err := qrcode.Encode(data, qrcode.Medium, 256)
+	if err != nil {
+		return err
+	}
+	file_set_content(filePath, content)
+	return nil
 }

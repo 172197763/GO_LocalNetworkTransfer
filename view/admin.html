@@ -9,40 +9,101 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/element-ui/2.15.14/theme-chalk/index.min.css" >
     <script src="https://cdnjs.cloudflare.com/ajax/libs/element-ui/2.15.14/index.min.js" ></script>
 </head>
+<style>
+    .image{
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding-top: 10px;
+    }
+    .picname{
+        display: block;
+        font-size: 10px;
+        width: 100px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+        text-align: center;
+    }
+</style>
 <body>
     <div id="app">
-        <el-upload
-        drag
-        :show-file-list="false"
-        :on-success=uploadSuc
-        action="<goval=uploadurl>"
-        multiple>
-        <i class="el-icon-upload"></i>
-        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-        <div class="el-upload__tip" slot="tip">只限于局域网内使用</div>
-        </el-upload>
-        <el-button type="primary" @click="loadImg">刷新</el-button>
-        <el-button type="danger" @click="emptyImg">清空图片</el-button>
-        <div class="demo-image">
+        <div class="el-upload__tip" slot="tip" style="text-align: center;">只限于局域网内使用（需要传输文本时直接ctrl+v）</div>
+        
+        <div>
+            <el-button-group>
+                <el-button type="primary" @click="dialogVisiblePic=true">上传图片<i class="el-icon-upload el-icon--right"></i></el-button>
+                <el-button type="primary" @click="loadImg" icon="el-icon-refresh" ></el-button>
+                <el-button type="danger" @click="emptyImg" icon="el-icon-delete"></el-button>
+            </el-button-group>
+        </div>
+        <div class="image">
             <div style="display: inline-block;" v-for="fit in img_arr">
-                <el-image
-                    style="width: 100px; height: 100px"
-                    :src="fit.url"
-                    :fit="fit.fit"></el-image>
+                <el-image style="width: 100px; height: 100px" :src="fit.url" :fit="fit.fit"></el-image>
+                <span class="picname">{{ fit.name }}</span>
             </div>
         </div>
+        <el-dialog title="文本传输" :modal="modal" :visible.sync="dialogVisible" width="50%">
+            <el-input type="textarea" v-model="paste_text" rows="10"></el-input>
+            <span slot="footer" class="dialog-footer">
+                <el-button type="primary" @click="createTextQrcode">生成二维码</el-button>
+                <el-button @click="dialogVisible = false">关闭</el-button>
+            </span>
+        </el-dialog>
+        <el-dialog title="👑公主请扫码"  :visible.sync="dialogVisibleQrcode" width="30%" style="text-align: center;">
+            <el-image style="width: 200px; height: 200px" :src="textqrcode" fit="cover"></el-image>
+        </el-dialog>
+        <el-dialog title="照片传输" :modal="modalpic" :visible.sync="dialogVisiblePic" width="50%">
+            <el-upload
+            drag
+            :show-file-list="false"
+            :on-success=uploadSuc
+            action="<goval=uploadurl>"
+            multiple>
+            <i class="el-icon-upload"></i>
+            <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+            </el-upload>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="dialogVisiblePic = false">关闭</el-button>
+            </span>
+        </el-dialog>
     </div>
 </body>
 <script>
     var app = new Vue({
         el: '#app',
         data: {
+            dialogVisibleQrcode:false,
+            modal:false,
+            modalpic:false,
             message: false,
+            paste_text:"",
+            dialogVisible:false,
+            dialogVisiblePic:false,
+            textqrcode:"",
             img_arr:[
                 {'fit':'fill','url':'https://t8.baidu.com/it/u=2564681574,350774151&fm=218&app=126&size=f242,150&n=0&f=JPEG&fmt=auto?s=81B7C7321FC24EC06ECBA042030030FA&sec=1702746000&t=686bb5ce7b508caf77daf028670343a7'},
             ],
         },
         methods: {
+            createTextQrcode:function(){
+                _this=this
+                let url='<goval=createtxtqrcodeurl>'
+                axios
+                .post(url,{'text':this.paste_text},{
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }})
+                .then(function (response) {
+                    console.log('创建文本qrcode返回二维码');
+                    console.log(response);
+                    _this.textqrcode=response.data.url
+                    _this.dialogVisibleQrcode=true
+                })
+                .catch(function (error) {
+                    console.log(error);
+                });
+            },
             uploadSuc:function(){
                 this.loadImg()
                 this.$message({
@@ -60,8 +121,13 @@
                     showpicurl="<goval=showpicurl>"
                     _this.img_arr=[]
                     for (const k in response.data.list) {
-                        _this.img_arr.push({"url":showpicurl+response.data.list[k],fit:'fill'});
+                        _this.img_arr.push({"url":showpicurl+response.data.list[k],fit:'cover',name:response.data.list[k]});
                     }
+                    _this.$message({
+                        message: '刷新成功',
+                        type: 'success',
+                        duration:1000
+                    });
                 })
                 .catch(function (error) {
                     console.log(error);
@@ -83,10 +149,32 @@
                     console.log(error);
                 });
             }
+            
         },
         created: function () {
-            this.loadImg()
+            this.loadImg();
+            _this=this;
+            //监听粘贴事件
+            window.addEventListener("paste", function (e){
+                if(!(e.clipboardData && e.clipboardData.items)) {
+                    return;
+                }
+                for (var i = 0,len = e.clipboardData.items.length; i < len; i++){
+                    var itemz = e.clipboardData.items[i];
+                    if (itemz.kind === "string") {
+                        _this.dialogVisible=true;
+                        itemz.getAsString(function (str) {
+                            _this.paste_text=str;
+                            console.log("粘贴内容"+str)
+                        });
+                        break;
+                    }else if (itemz.kind === "file") {
+                        alert('暂不支持文件操作');
+                        // var pasteFile = itemz.getAsFile();
+                    }
+                }
+            })
         }
-    })
+    });
 </script>
 </html>

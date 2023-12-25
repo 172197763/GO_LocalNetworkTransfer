@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>选择网络</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.7.15/vue.common.dev.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.0/axios.min.js" ></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/element-ui/2.15.14/theme-chalk/index.min.css" >
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/element-ui/2.15.14/index.min.js" ></script>
+    <style>
+        .card{
+            display: inline-flex;
+            border: 1px dotted;
+        }
+        .card_jump{
+            border-left: 1px dashed;
+            padding: 5px;
+        }
+        .card_desc{
+            width: 100px;
+            font-size: 10px;
+            word-break: break-all;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h3>请用设备扫描二维码进入可用的局域网</h3>
+        <div style="display: flex;flex-wrap: wrap;gap: 20px;">
+            <div class="card" v-for="(item, index) in url_arr" :key="index">
+                <!-- {{item.url}} -->
+                <el-image style="width: 150px; height: 150px" :src="item.qrcode" :fit="fit"></el-image>
+                <span class="card_desc">服务地址：<br>{{ item.url }}</span>
+                <el-link :href="item.url" class="card_jump" target="_blank">跳转</el-link>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            message: false,
+            url_arr:<goval=url_arr>,
+        },
+        methods: {
+            uploadSuc:function(){
+                this.loadImg()
+                this.$message({
+                    message: '上传完成',
+                    type: 'success'
+                });
+            },
+        },
+        created: function () {
+            console.log(this.url_arr)
+        }
+    })
+</script>
+</html>

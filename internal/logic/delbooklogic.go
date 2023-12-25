@@ -3,8 +3,8 @@ package logic
 import (
 	"context"
 
-	"GOZEROTEST/internal/svc"
-	"GOZEROTEST/internal/types"
+	"GO_LOCALNETWORKTRANSFER/internal/svc"
+	"GO_LOCALNETWORKTRANSFER/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )

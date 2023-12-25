@@ -4,7 +4,7 @@ package handler
 import (
 	"net/http"
 
-	"GOZEROTEST/internal/svc"
+	"GO_LOCALNETWORKTRANSFER/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
 )

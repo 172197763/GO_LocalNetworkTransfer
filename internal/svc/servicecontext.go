@@ -1,7 +1,7 @@
 package svc
 
 import (
-	"GOZEROTEST/internal/config"
+	"GO_LOCALNETWORKTRANSFER/internal/config"
 )
 
 type ServiceContext struct {

@@ -3,9 +3,10 @@ package handler
 import (
 	"net/http"
 
-	"GOZEROTEST/internal/logic"
-	"GOZEROTEST/internal/svc"
-	"GOZEROTEST/internal/types"
+	"GO_LOCALNETWORKTRANSFER/internal/logic"
+	"GO_LOCALNETWORKTRANSFER/internal/svc"
+	"GO_LOCALNETWORKTRANSFER/internal/types"
+
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 

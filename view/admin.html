@@ -46,7 +46,7 @@
                 <span class="picname">{{ fit.name }}</span>
             </div>
         </div>
-        <el-dialog title="文本传输" :modal="modal" :visible.sync="dialogVisible" width="500px">
+        <el-dialog title="📄文本传输" :modal="modal" :visible.sync="dialogVisible" width="500px">
             <el-input type="textarea" v-model="paste_text" rows="10"></el-input>
             <span slot="footer" class="dialog-footer">
                 <el-button type="primary" @click="createTextQrcode">生成二维码</el-button>
@@ -56,7 +56,7 @@
         <el-dialog title="👑公主请扫码"  :visible.sync="dialogVisibleQrcode" width="400px" style="text-align: center;">
             <el-image style="width: 200px; height: 200px" :src="textqrcode" fit="cover"></el-image>
         </el-dialog>
-        <el-dialog title="照片传输" :modal="modalpic" :visible.sync="dialogVisiblePic" width="500px" >
+        <el-dialog title="🌄照片传输" :modal="modalpic" :visible.sync="dialogVisiblePic" width="500px" >
             <el-upload style="width: 100%;"
             drag
             :show-file-list="false"

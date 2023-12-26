@@ -121,13 +121,20 @@ func main() {
 		},
 	})
 	s.AddRoute(rest.Route{ // 添加路由
-		Method: http.MethodGet,
+		Method: http.MethodPost,
 		Path:   "/hello/emptyPic", //清空文件夹
 		Handler: func(writer http.ResponseWriter, request *http.Request) { // 处理函数
-			dirPath := "./upload/img/"
-			if err := clearDir(dirPath); err != nil {
-				log.Fatal(err)
+			// dirPath := "./upload/img/"
+			// if err := clearDir(dirPath); err != nil {
+			// 	log.Fatal(err)
+			// }
+			request.ParseForm()
+			post_data := request.Form
+			content, _ := post_data["pic_name[]"]
+			for _, v := range content {
+				clearDir("./upload/img/" + v)
 			}
+
 			httpx.OkJson(writer, []int{})
 		},
 	})
@@ -200,9 +207,29 @@ func main() {
 	defer s.Stop()
 	s.Start() // 启动服务
 }
+func isDir(file string) bool {
+	info, err := os.Stat(file)
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	if info.IsDir() {
+		// fmt.Println("It is a directory")
+		return true
+	} else {
+		// fmt.Println("It is a file")
+		return false
+	}
+}
 
 // 清空文件夹
 func clearDir(dirPath string) error {
+	if !isDir(dirPath) {
+		if err := os.Remove(dirPath); err != nil {
+			return err
+		}
+		return nil
+	}
 	dir, err := os.ReadDir(dirPath)
 	if err != nil {
 		return err

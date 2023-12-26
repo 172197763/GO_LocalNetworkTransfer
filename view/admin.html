@@ -28,6 +28,11 @@
     .el-upload-dragger,.el-upload{
         width: 100%;
     }
+    .pic-check{
+        position: absolute;
+        top: 0;
+        right: 5px;
+    }
 </style>
 <body>
     <div id="app">
@@ -40,9 +45,14 @@
                 <el-button type="danger" @click="emptyImg" icon="el-icon-delete"></el-button>
             </el-button-group>
         </div>
+        <div>
+            <el-checkbox :indeterminate="picIsInd" v-model="checkAll" @change="handleCheckAllChange">全选</el-checkbox>
+        </div>
         <div class="image">
-            <div style="display: inline-block;" v-for="fit in img_arr">
-                <el-image style="width: 100px; height: 100px" :src="fit.url" :fit="fit.fit"></el-image>
+            <div style="display: inline-block;position: relative;" v-for="(fit,index) in img_arr">
+                <el-image style="width: 100px; height: 100px" :preview-src-list="fit.url_arr" :src="fit.url" :fit="fit.fit">
+                </el-image>
+                <el-checkbox label="" class="pic-check" v-model="fit.select"></el-checkbox>
                 <span class="picname">{{ fit.name }}</span>
             </div>
         </div>
@@ -76,6 +86,8 @@
     var app = new Vue({
         el: '#app',
         data: {
+            picIsInd:false,
+            checkAll:false,
             dialogVisibleQrcode:false,
             modal:false,
             modalpic:false,
@@ -89,6 +101,11 @@
             ],
         },
         methods: {
+            handleCheckAllChange:function(val){
+                for (const k in this.img_arr) {
+                    this.img_arr[k].select=val
+                }
+            },
             createTextQrcode:function(){
                 _this=this
                 let url='<goval=createtxtqrcodeurl>'
@@ -124,7 +141,7 @@
                     showpicurl="<goval=showpicurl>"
                     _this.img_arr=[]
                     for (const k in response.data.list) {
-                        _this.img_arr.push({"url":showpicurl+response.data.list[k],fit:'cover',name:response.data.list[k]});
+                        _this.img_arr.push({"select":false,"url_arr":[showpicurl+response.data.list[k]],"url":showpicurl+response.data.list[k],fit:'cover',name:response.data.list[k]});
                     }
                     if(showTip){
                         _this.$message({
@@ -139,10 +156,19 @@
                 });
             },
             emptyImg:function(){
+                let data=[]
+                for (const k in this.img_arr) {
+                    if(this.img_arr[k].select){
+                        data.push(this.img_arr[k].name)
+                    }
+                }
                 _this=this
                 let url='<goval=emptyimgurl>'
                 axios
-                .get(url)
+                .post(url,{'pic_name':data},{
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }})
                 .then(function (response) {
                     _this.loadImg()
                     _this.$message({

@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -94,8 +96,15 @@ func main() {
 			for _, file := range files {
 				res = append(res, file.Name())
 			}
-			m := make(map[string][]string)
+			jsonString, err := json.Marshal(res)
+			if err != nil {
+				fmt.Println("转换失败:", err)
+				return
+			}
+
+			m := make(map[string]interface{})
 			m["list"] = res
+			m["md5"] = md5s(string(jsonString))
 			httpx.OkJson(writer, m)
 		},
 	})
@@ -151,12 +160,28 @@ func main() {
 			post_data := request.Form
 			content, _ := post_data["text"]
 			file_set_content("./upload/txt/0000.txt", []byte(content[0]))
-			url := "http://" + ip + "/upload/txt/0000.txt"
+			// url := "http://" + ip + "/upload/txt/0000.txt"
+			url := "http://" + ip + "/hello/getTxt"
 			generateQRCode(url, "./upload/qrcode/0000.png")
 			m := make(map[string]interface{})
 			m["code"] = 200
 			m["url"] = "http://" + ip + "/upload/qrcode/0000.png"
 			httpx.OkJson(writer, m)
+		},
+	})
+	s.AddRoute(rest.Route{ // 添加路由
+		Method: http.MethodGet,
+		Path:   "/hello/getTxt", //获取文本接口
+		Handler: func(writer http.ResponseWriter, request *http.Request) { // 处理函数
+			data, err := os.ReadFile("./upload/txt/0000.txt")
+			if err != nil {
+				fmt.Println(err)
+			}
+			m := make(map[string]interface{})
+			m["txt"] = string(data)
+			writer.Header().Add("Content-Type", "text/html")
+			writer.Write([]byte(view("./view/txt.html", m)))
+			httpx.Ok(writer)
 		},
 	})
 	s.AddRoute(rest.Route{ // 添加路由
@@ -370,4 +395,18 @@ func openUrl(url string) {
 	if err != nil {
 		fmt.Println("无法打开浏览器:", err)
 	}
+}
+func md5s(str string) string {
+
+	// 创建一个新的MD5哈希对象
+	hash := md5.New()
+
+	// 将字符串转换为字节数组并计算哈希值
+	hash.Write([]byte(str))
+	hashValue := hash.Sum(nil)
+
+	// 将哈希值转换为16进制字符串并打印输出
+	hashString := hex.EncodeToString(hashValue)
+	fmt.Println("MD5 Hash:", hashString)
+	return hashString
 }

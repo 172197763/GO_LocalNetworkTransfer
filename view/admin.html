@@ -96,6 +96,7 @@
             dialogVisible:false,
             dialogVisiblePic:false,
             textqrcode:"",
+            piclistmd5:"",
             img_arr:[
                 {'fit':'fill','url':'https://t8.baidu.com/it/u=2564681574,350774151&fm=218&app=126&size=f242,150&n=0&f=JPEG&fmt=auto?s=81B7C7321FC24EC06ECBA042030030FA&sec=1702746000&t=686bb5ce7b508caf77daf028670343a7'},
             ],
@@ -137,10 +138,14 @@
                 axios
                 .get(url)
                 .then(function (response) {
+                    if(_this.piclistmd5==response.data.md5){
+                        return;
+                    }
                     // console.log(response.data);
                     showpicurl="<goval=showpicurl>"
                     _this.img_arr=[]
                     for (const k in response.data.list) {
+                        _this.piclistmd5=response.data.md5
                         _this.img_arr.push({"select":false,"url_arr":[showpicurl+response.data.list[k]],"url":showpicurl+response.data.list[k],fit:'cover',name:response.data.list[k]});
                     }
                     if(showTip){
@@ -183,8 +188,13 @@
             
         },
         created: function () {
+            
             this.loadImg();
+            
             _this=this;
+            setInterval(function() {
+                _this.loadImg();
+            }, 1000);
             //监听粘贴事件
             window.addEventListener("paste", function (e){
                 if(!(e.clipboardData && e.clipboardData.items)) {

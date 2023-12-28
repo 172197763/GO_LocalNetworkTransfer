@@ -9,7 +9,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -23,6 +25,7 @@ import (
 type netInfo struct {
 	Url    string `json:"url"`
 	Qrcode string `json:"qrcode"`
+	IsShow bool   `json:"is_show"`
 }
 
 func main() {
@@ -44,6 +47,7 @@ func main() {
 				tmp := netInfo{
 					"http://" + v + ":" + strconv.Itoa(restConf.Port) + "/hello/picAdmin",
 					"http://" + v + ":" + strconv.Itoa(restConf.Port) + "/upload/qrcode/url_" + strconv.Itoa(k) + ".png",
+					true,
 				}
 				generateQRCode(tmp.Url, "./upload/qrcode/url_"+strconv.Itoa(k)+".png")
 				netinfo = append(netinfo, tmp)
@@ -205,7 +209,9 @@ func main() {
 	}
 
 	defer s.Stop()
+	openUrl("http://127.0.0.1:" + strconv.Itoa(restConf.Port) + "/hello/world")
 	s.Start() // 启动服务
+
 }
 func isDir(file string) bool {
 	info, err := os.Stat(file)
@@ -343,4 +349,25 @@ func generateQRCode(data string, filePath string) error {
 	}
 	file_set_content(filePath, content)
 	return nil
+}
+
+// 打开网址
+func openUrl(url string) {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin": // macOS
+		cmd = exec.Command("open", url)
+		break
+	case "windows": // Windows
+		cmd = exec.Command("start", url)
+		break
+	default: // 其他操作系统（如Linux）
+		cmd = exec.Command("xdg-open", url)
+		break
+	}
+
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println("无法打开浏览器:", err)
+	}
 }

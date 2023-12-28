@@ -32,9 +32,9 @@
     <div id="app">
         <h3>请用设备扫描二维码进入可用的局域网</h3>
         <div style="display: flex;flex-wrap: wrap;gap: 20px;">
-            <div class="card" v-for="(item, index) in url_arr" :key="index">
+            <div class="card" v-for="(item, index) in url_arr" :key="index" v-if="item.is_show">
                 <!-- {{item.url}} -->
-                <el-image style="width: 150px; height: 150px" :src="item.qrcode" :fit="fit"></el-image>
+                <el-image style="width: 150px; height: 150px" :src="item.qrcode" :fit="item.fit" @error="item.is_show=false"></el-image>
                 <span class="card_desc">服务地址：<br>{{ item.url }}</span>
                 <el-link :href="item.url" class="card_jump" target="_blank">跳转</el-link>
             </div>
@@ -49,16 +49,11 @@
             url_arr:<goval=url_arr>,
         },
         methods: {
-            uploadSuc:function(){
-                this.loadImg()
-                this.$message({
-                    message: '上传完成',
-                    type: 'success'
-                });
-            },
+            loadImgErr: function (e,index) {
+            }
         },
         created: function () {
-            console.log(this.url_arr)
+            this.url_arr.push({"url":"http://196.1.1.1","qrcode":"","is_show":true})
         }
     })
 </script>

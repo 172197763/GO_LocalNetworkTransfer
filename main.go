@@ -384,14 +384,14 @@ func openUrl(url string) {
 		cmd = exec.Command("open", url)
 		break
 	case "windows": // Windows
-		cmd = exec.Command("start", url)
+		cmd = exec.Command("explorer", url)
 		break
 	default: // 其他操作系统（如Linux）
 		cmd = exec.Command("xdg-open", url)
 		break
 	}
 
-	err := cmd.Run()
+	err := cmd.Start()
 	if err != nil {
 		fmt.Println("无法打开浏览器:", err)
 	}
